@@ -12,7 +12,7 @@ import (
 	"github.com/go-co-op/gocron"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -366,19 +366,18 @@ func getClone(target *Target, PAT string) error {
 
 	if !exists {
 		logger.Infof("git clone %s %s --recursive", target.url, target.branch)
-		var user string
-		if PAT != "" {
-			user = "fetchit"
-		}
-		_, err = git.PlainClone(absPath, false, &git.CloneOptions{
-			Auth: &githttp.BasicAuth{
-				Username: user, // the value of this field should not matter when using a PAT
-				Password: PAT,
-			},
+		opts := &git.CloneOptions{
 			URL:           target.url,
 			ReferenceName: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", target.branch)),
 			SingleBranch:  true,
-		})
+		}
+		if PAT != "" {
+			opts.Auth = &http.BasicAuth{
+				Username: "fetchit",
+				Password: PAT,
+			}
+		}
+		_, err = git.PlainClone(absPath, false, opts)
 		if err != nil {
 			return err
 		}
