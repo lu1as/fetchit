@@ -29,6 +29,7 @@ const kubeMethod = "kube"
 // Kube to launch pods using podman kube-play
 type Kube struct {
 	CommonMethod `mapstructure:",squash"`
+	Secrets      map[string]string `mapstructure:"secrets"`
 }
 
 func (k *Kube) GetKind() string {
@@ -101,6 +102,15 @@ func (k *Kube) kubePodman(ctx, conn context.Context, path string, prev *string) 
 		kubeYaml, err := ioutil.ReadFile(path)
 		if err != nil {
 			return utils.WrapErr(err, "Error reading file")
+		}
+
+		// replace secrets in yaml definition
+		if k.Secrets != nil {
+			y := string(kubeYaml)
+			for k, v := range k.Secrets {
+				y = strings.ReplaceAll(y, k, v)
+			}
+			kubeYaml = []byte(y)
 		}
 
 		// Try stopping the pods, don't care if they don't exist
